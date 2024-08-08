@@ -1,77 +1,123 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pixel_artist/widgets/pixel.dart';
 
 class ArtGrid extends StatefulWidget {
   const ArtGrid({
     super.key,
-    this.width = 16,
-    this.height = 16,
+    this.gridSize = 25,
+    this.pixelSize = 10,
   });
 
-  final int width;
-  final int height;
+  final int gridSize;
+  final double pixelSize;
 
   @override
-  ArtGridState createState() => ArtGridState();
+  State<ArtGrid> createState() => _ArtGridState();
 }
 
-class ArtGridState extends State<ArtGrid> {
+class _ArtGridState extends State<ArtGrid> {
+  List<Pixel> pixels = [];
+  int gridSize = 25;
+  double pixelSize = 10;
+  final int maxGridSize = 35;
+
   @override
   void initState() {
     super.initState();
-    width = widget.width;
-    height = widget.height;
+    gridSize = widget.gridSize;
+    pixelSize = widget.pixelSize;
 
     _generateGrid();
   }
 
+  void _setColor(Offset localPosition) {
+    double dx = localPosition.dx;
+    double dy = localPosition.dy;
+
+    if (dx <= 0 || dy <= 0 || dx >= gridSize * pixelSize || dy >= gridSize * pixelSize) {
+      // Outside of drawing area
+      return;
+    }
+
+    int xi = (dx / pixelSize).truncate();
+    int yi = (dy / pixelSize).truncate();
+    int pi = xi + (yi * gridSize);
+
+    pixels = List<Pixel>.generate(
+      gridSize * gridSize, (i) => Pixel(
+        color: i == pi ? Colors.black: pixels[i].color,
+        size: pixelSize,
+      ),
+    );
+
+    setState(() {});
+  }
+
   void _generateGrid() {
-    print('Generate grid');
-
-    List<Pixel> pixelRow = List<Pixel>.generate(
-      width, (i) => Pixel(
-      color: Colors.red,
-    ),
+    pixels = List<Pixel>.generate(
+      gridSize * gridSize, (i) => Pixel(
+        color: Colors.transparent,
+        size: pixelSize,
+      ),
     );
 
-    pixels = List<Row>.generate(
-      height, (i) => Row(
-      children: pixelRow,
-    ),
-    );
+    setState(() {});
   }
 
-  void _recolorRow() {
-    List<Pixel> pixelRowRecolor = List<Pixel>.generate(
-      width, (i) => Pixel(
-      color: Colors.blue,
-    ),
-    );
+  void _setGridSize(String val) {
+    int newGridSize = int.tryParse(val) ?? gridSize;
 
-    pixels[0] = Row(
-      children: pixelRowRecolor,
-    );
+    if (newGridSize > maxGridSize) {
+      return;
+    }
 
-    print(pixels[0].children[0]);
+    setState(() {
+      gridSize = newGridSize;
+    });
+     _generateGrid();
   }
-
-  List<Row> pixels = [];
-  int width = 16;
-  int height = 16;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Text(
-          'Grid size: ${height}x$width'
+          'Grid size: ${gridSize}x$gridSize',
         ),
+      TextField(
+        onChanged: _setGridSize,
+        decoration: InputDecoration(labelText: 'Enter grid size (max $maxGridSize)'),
+        keyboardType: TextInputType.number,
+        inputFormatters: <TextInputFormatter>[
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(2),
+        ],
+      ),
+      GestureDetector(
+        onPanStart: (e) => _setColor(e.localPosition),
+        onPanUpdate: (e) => _setColor(e.localPosition),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: gridSize * pixelSize),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                  color: Colors.black,
+                  width: 5,
+                  strokeAlign: BorderSide.strokeAlignOutside
+              )
+            ),
+            child: Wrap(
+              spacing: 0,
+              runSpacing: 0,
+              children: pixels,
+            ),
+          )
+        )
+      ),
         TextButton(
-          onPressed: _recolorRow,
+          onPressed: _generateGrid,
           child: Text('Reset grid'),
-        ),
-        Column(
-          children: pixels,
         ),
       ],
     );
