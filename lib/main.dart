@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pixel_artist/widgets/art_grid.dart';
+
+import 'widgets/pixel.dart';
 
 void main() {
   runApp(const MyApp());
@@ -108,10 +111,59 @@ class _MyHomePageState extends State<MyHomePage> {
             const Text(
               'You have pushed the button this many times:',
             ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Column(
+                      children: [
+                        Pixel(
+                            color: Colors.red
+                        ),
+                        Pixel(
+                            color: Colors.blue
+                        ),
+                        Pixel(
+                            color: Colors.green
+                        ),
+                        Pixel(
+                            color: Colors.yellow
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Pixel(
+                            color: Colors.red
+                        ),
+                        Pixel(
+                            color: Colors.blue
+                        ),
+                        Pixel(
+                            color: Colors.green
+                        ),
+                        Pixel(
+                            color: Colors.yellow
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ],
+            ),
+            Pixel(
+                color: Colors.red
+            ),
+            Pixel(
+                color: Colors.blue
+            ),
+            ArtGrid(),
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
+            Text('A random AWESOME idea:'),  // ← Example change.
           ],
         ),
       ),
