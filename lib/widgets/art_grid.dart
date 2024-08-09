@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pixel_artist/widgets/pixel.dart';
 
+import 'colour_palette.dart';
+
 class ArtGrid extends StatefulWidget {
   const ArtGrid({
     super.key,
@@ -21,17 +23,19 @@ class _ArtGridState extends State<ArtGrid> {
   int gridSize = 25;
   double pixelSize = 10;
   final int maxGridSize = 35;
+  var colour = Colors.black;
 
   @override
   void initState() {
     super.initState();
     gridSize = widget.gridSize;
     pixelSize = widget.pixelSize;
+    colour = Colors.black;
 
     _generateGrid();
   }
 
-  void _setColor(Offset localPosition) {
+  void _updatePixel(Offset localPosition) {
     double dx = localPosition.dx;
     double dy = localPosition.dy;
 
@@ -46,10 +50,20 @@ class _ArtGridState extends State<ArtGrid> {
 
     pixels = List<Pixel>.generate(
       gridSize * gridSize, (i) => Pixel(
-        color: i == pi ? Colors.black: pixels[i].color,
+        color: i == pi ? colour: pixels[i].color,
         size: pixelSize,
       ),
     );
+
+    setState(() {});
+  }
+
+  void _setColour(Color newColour) {
+    if (colour == newColour) {
+      return;
+    }
+
+    colour = newColour;
 
     setState(() {});
   }
@@ -82,21 +96,30 @@ class _ArtGridState extends State<ArtGrid> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          'Grid size: ${gridSize}x$gridSize',
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: gridSize * pixelSize),
+          child: ColourPalette(
+            colour: colour,
+            callback: _setColour,
+          ),
         ),
-      TextField(
-        onChanged: _setGridSize,
-        decoration: InputDecoration(labelText: 'Enter grid size (max $maxGridSize)'),
-        keyboardType: TextInputType.number,
-        inputFormatters: <TextInputFormatter>[
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(2),
-        ],
-      ),
+        Container(
+          width: 200,
+          margin: EdgeInsets.all(20),
+          child: TextField(
+            controller: TextEditingController(text: gridSize.toString()),
+            onChanged: _setGridSize,
+            decoration: InputDecoration(labelText: 'Enter grid size (max $maxGridSize)'),
+            keyboardType: TextInputType.number,
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(2),
+            ],
+          ),
+        ),
       GestureDetector(
-        onPanStart: (e) => _setColor(e.localPosition),
-        onPanUpdate: (e) => _setColor(e.localPosition),
+        onPanStart: (e) => _updatePixel(e.localPosition),
+        onPanUpdate: (e) => _updatePixel(e.localPosition),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: gridSize * pixelSize),
           child: Container(
