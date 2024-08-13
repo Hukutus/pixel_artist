@@ -41,15 +41,17 @@ class _ArtGridState extends State<ArtGrid> {
     double dx = localPosition.dx;
     double dy = localPosition.dy;
 
+    // Make sure we're inside the drawing area
     if (dx <= 0 || dy <= 0 || dx >= gridSize * pixelSize || dy >= gridSize * pixelSize) {
-      // Outside of drawing area
       return;
     }
 
+    // Find out which pixel was panned over
     int xi = (dx / pixelSize).truncate();
     int yi = (dy / pixelSize).truncate();
     int pi = xi + (yi * gridSize);
 
+    // Recreate whole List to make sure the change is visible
     pixelColours = List<Color>.generate(
       gridSize * gridSize, (i) => i == pi ? colour: pixelColours[i]
     );
@@ -67,8 +69,18 @@ class _ArtGridState extends State<ArtGrid> {
     setState(() {});
   }
 
+  void _flipCanvas() {
+    pixelColours = pixelColours
+      .slices(gridSize)
+      .map((row) => row.reversed.toList())
+      .expand((item) => item).toList();
+
+    setState(() {});
+  }
+
+  final deepEquality = DeepCollectionEquality();
   void _updateHistory() {
-    if (DeepCollectionEquality().equals(pixelColours, history.last)) {
+    if (deepEquality.equals(pixelColours, history.last)) {
       // No change, no need to update history
       return;
     }
@@ -164,6 +176,10 @@ class _ArtGridState extends State<ArtGrid> {
         TextButton(
           onPressed: _undoChange,
           child: Text('Undo change (${history.length - 1})'),
+        ),
+        TextButton(
+          onPressed: _flipCanvas,
+          child: Text('Flip canvas horizontally'),
         ),
         TextButton(
           onPressed: _generateGrid,
