@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pixel_artist/widgets/pixel.dart';
+import 'package:collection/collection.dart';
 
 import 'colour_palette.dart';
 
@@ -19,7 +20,8 @@ class ArtGrid extends StatefulWidget {
 }
 
 class _ArtGridState extends State<ArtGrid> {
-  List<Pixel> pixels = [];
+  List<Color> pixelColours = [];
+  List<List<Color>> history = [];
   int gridSize = 25;
   double pixelSize = 10;
   final int maxGridSize = 35;
@@ -35,7 +37,7 @@ class _ArtGridState extends State<ArtGrid> {
     _generateGrid();
   }
 
-  void _updatePixel(Offset localPosition) {
+  void _updatePixel(Offset localPosition, [bool start = false]) {
     double dx = localPosition.dx;
     double dy = localPosition.dy;
 
@@ -48,11 +50,8 @@ class _ArtGridState extends State<ArtGrid> {
     int yi = (dy / pixelSize).truncate();
     int pi = xi + (yi * gridSize);
 
-    pixels = List<Pixel>.generate(
-      gridSize * gridSize, (i) => Pixel(
-        color: i == pi ? colour: pixels[i].color,
-        size: pixelSize,
-      ),
+    pixelColours = List<Color>.generate(
+      gridSize * gridSize, (i) => i == pi ? colour: pixelColours[i]
     );
 
     setState(() {});
@@ -68,13 +67,31 @@ class _ArtGridState extends State<ArtGrid> {
     setState(() {});
   }
 
+  void _updateHistory() {
+    if (DeepCollectionEquality().equals(pixelColours, history.last)) {
+      // No change, no need to update history
+      return;
+    }
+
+    history.add(pixelColours);
+  }
+
+  void _undoChange() {
+    if (history.length == 1) {
+      return;
+    }
+
+    history.removeLast();
+    pixelColours = history.last;
+    setState(() {});
+  }
+
   void _generateGrid() {
-    pixels = List<Pixel>.generate(
-      gridSize * gridSize, (i) => Pixel(
-        color: Colors.transparent,
-        size: pixelSize,
-      ),
+    pixelColours = List<Color>.generate(
+        gridSize * gridSize, (i) => Colors.transparent
     );
+
+    history = [pixelColours];
 
     setState(() {});
   }
@@ -118,8 +135,9 @@ class _ArtGridState extends State<ArtGrid> {
           ),
         ),
       GestureDetector(
-        onPanStart: (e) => _updatePixel(e.localPosition),
+        onPanStart: (e) => _updatePixel(e.localPosition, true),
         onPanUpdate: (e) => _updatePixel(e.localPosition),
+        onPanEnd: (e) => _updateHistory(),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: gridSize * pixelSize),
           child: Container(
@@ -133,11 +151,20 @@ class _ArtGridState extends State<ArtGrid> {
             child: Wrap(
               spacing: 0,
               runSpacing: 0,
-              children: pixels,
+              children: List<Pixel>.generate(
+                gridSize * gridSize, (i) => Pixel(
+                  color: pixelColours[i],
+                  size: pixelSize,
+                )
+              ),
             ),
           )
         )
       ),
+        TextButton(
+          onPressed: _undoChange,
+          child: Text('Undo change (${history.length - 1})'),
+        ),
         TextButton(
           onPressed: _generateGrid,
           child: Text('Reset grid'),
