@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pixel_artist/widgets/pixel.dart';
 import 'package:collection/collection.dart';
 
+import '../helpers/findPixelFromOffset.dart';
 import 'colour_palette.dart';
 
 class ArtGrid extends StatefulWidget {
@@ -13,7 +14,7 @@ class ArtGrid extends StatefulWidget {
   });
 
   final int gridSize;
-  final double pixelSize;
+  final int pixelSize;
 
   @override
   State<ArtGrid> createState() => _ArtGridState();
@@ -23,7 +24,7 @@ class _ArtGridState extends State<ArtGrid> {
   List<Color> pixelColours = [];
   List<List<Color>> history = [];
   int gridSize = 25;
-  double pixelSize = 10;
+  int pixelSize = 10;
   final int maxGridSize = 35;
   var colour = Colors.black;
 
@@ -37,19 +38,8 @@ class _ArtGridState extends State<ArtGrid> {
     _generateGrid();
   }
 
-  void _updatePixel(Offset localPosition, [bool start = false]) {
-    double dx = localPosition.dx;
-    double dy = localPosition.dy;
-
-    // Make sure we're inside the drawing area
-    if (dx <= 0 || dy <= 0 || dx >= gridSize * pixelSize || dy >= gridSize * pixelSize) {
-      return;
-    }
-
-    // Find out which pixel was panned over
-    int xi = (dx / pixelSize).truncate();
-    int yi = (dy / pixelSize).truncate();
-    int pi = xi + (yi * gridSize);
+  void _updatePixel(Offset localPosition) {
+    final pi = findPixelFromOffset(localPosition, gridSize, pixelSize);
 
     // Recreate whole List to make sure the change is visible
     pixelColours = List<Color>.generate(
@@ -69,15 +59,6 @@ class _ArtGridState extends State<ArtGrid> {
     setState(() {});
   }
 
-  void _flipCanvas() {
-    pixelColours = pixelColours
-      .slices(gridSize)
-      .map((row) => row.reversed.toList())
-      .expand((item) => item).toList();
-
-    setState(() {});
-  }
-
   final deepEquality = DeepCollectionEquality();
   void _updateHistory() {
     if (deepEquality.equals(pixelColours, history.last)) {
@@ -86,6 +67,17 @@ class _ArtGridState extends State<ArtGrid> {
     }
 
     history.add(pixelColours);
+  }
+
+  void _flipCanvas() {
+    pixelColours = pixelColours
+        .slices(gridSize)
+        .map((row) => row.reversed.toList())
+        .expand((item) => item).toList();
+
+    _updateHistory();
+
+    setState(() {});
   }
 
   void _undoChange() {
@@ -108,6 +100,13 @@ class _ArtGridState extends State<ArtGrid> {
     setState(() {});
   }
 
+  void _resetGrid() {
+    pixelColours = history.first;
+
+    _updateHistory();
+    setState(() {});
+  }
+
   void _setGridSize(String val) {
     int newGridSize = int.tryParse(val) ?? gridSize;
 
@@ -126,7 +125,7 @@ class _ArtGridState extends State<ArtGrid> {
     return Column(
       children: [
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: gridSize * pixelSize),
+          constraints: BoxConstraints(maxWidth: 300, minWidth: 300),
           child: ColourPalette(
             colour: colour,
             callback: _setColour,
@@ -147,11 +146,11 @@ class _ArtGridState extends State<ArtGrid> {
           ),
         ),
       GestureDetector(
-        onPanStart: (e) => _updatePixel(e.localPosition, true),
+        onPanStart: (e) => _updatePixel(e.localPosition),
         onPanUpdate: (e) => _updatePixel(e.localPosition),
         onPanEnd: (e) => _updateHistory(),
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: gridSize * pixelSize),
+          constraints: BoxConstraints(maxWidth: (gridSize * pixelSize).toDouble()),
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(
@@ -173,18 +172,25 @@ class _ArtGridState extends State<ArtGrid> {
           )
         )
       ),
-        TextButton(
-          onPressed: _undoChange,
-          child: Text('Undo change (${history.length - 1})'),
-        ),
-        TextButton(
-          onPressed: _flipCanvas,
-          child: Text('Flip canvas horizontally'),
-        ),
-        TextButton(
-          onPressed: _generateGrid,
-          child: Text('Reset grid'),
-        ),
+        Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: _undoChange,
+                child: Text('Undo'),
+              ),
+              TextButton(
+                onPressed: _flipCanvas,
+                child: Text('Flip canvas'),
+              ),
+              TextButton(
+                onPressed: _resetGrid,
+                child: Text('Reset'),
+              ),
+            ],
+          ),
+        )
       ],
     );
   }

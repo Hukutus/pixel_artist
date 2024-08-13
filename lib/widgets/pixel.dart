@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class Pixel extends StatefulWidget {
   Color color;
-  double size;
+  int size;
 
   Pixel({
     super.key,
@@ -25,8 +25,8 @@ class _PixelState extends State<Pixel> {
     return Container(
       margin: const EdgeInsets.all(0),
       color: widget.color,
-      height: widget.size,
-      width: widget.size,
+      height: widget.size.toDouble(),
+      width: widget.size.toDouble(),
     );
   }
 }
