@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:pixel_artist/widgets/pixel.dart';
 import 'package:collection/collection.dart';
 
-import '../helpers/findPixelFromOffset.dart';
+import '../helpers/fill_with_colour.dart';
+import '../helpers/find_pixel_from_offset.dart';
 import 'colour_palette.dart';
 
 class ArtGrid extends StatefulWidget {
@@ -27,6 +28,7 @@ class _ArtGridState extends State<ArtGrid> {
   int pixelSize = 10;
   final int maxGridSize = 35;
   var colour = Colors.black;
+  bool useFill = false;
 
   @override
   void initState() {
@@ -41,10 +43,14 @@ class _ArtGridState extends State<ArtGrid> {
   void _updatePixel(Offset localPosition) {
     final pi = findPixelFromOffset(localPosition, gridSize, pixelSize);
 
-    // Recreate whole List to make sure the change is visible
-    pixelColours = List<Color>.generate(
-      gridSize * gridSize, (i) => i == pi ? colour: pixelColours[i]
-    );
+    if (useFill) {
+      pixelColours = fillWithColour(colour, pixelColours, gridSize, pi, pixelColours[pi]);
+    } else {
+      // Recreate whole List to make sure the change is visible
+      pixelColours = List<Color>.generate(
+          gridSize * gridSize, (i) => i == pi ? colour: pixelColours[i]
+      );
+    }
 
     setState(() {});
   }
@@ -120,6 +126,18 @@ class _ArtGridState extends State<ArtGrid> {
      _generateGrid();
   }
 
+  void _fillArea(Offset localPosition) {
+    if (useFill == false) {
+      return;
+    }
+
+  }
+
+  void _toggleFill() {
+    useFill = !useFill;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -183,6 +201,10 @@ class _ArtGridState extends State<ArtGrid> {
               TextButton(
                 onPressed: _flipCanvas,
                 child: Text('Flip canvas'),
+              ),
+              TextButton(
+                onPressed: _toggleFill,
+                child: Text('[${useFill ? 'X' : ' '}] Fill'),
               ),
               TextButton(
                 onPressed: _resetGrid,
